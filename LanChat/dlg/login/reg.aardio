@@ -1,0 +1,66 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="注册";right=447;bottom=207;border="dialog frame";exmode="none";max=false;min=false;mode="popup")
+winform.add(
+btnOk={cls="button";text="注册";left=144;top=144;right=280;bottom=184;z=1};
+customLoading={cls="\dlg\login\loading.aardio";text="loading";left=8;top=8;right=442;bottom=200;db=1;dl=1;dr=1;dt=1;hide=1;z=2};
+editPassword={cls="edit";text="123";left=72;top=96;right=368;bottom=128;edge=1;font=LOGFONT(h=-14);multiline=1;password=1;z=4};
+editUseName={cls="edit";text="banana";left=72;top=32;right=368;bottom=64;edge=1;font=LOGFONT(h=-14);multiline=1;z=3}
+)
+/*}}*/
+
+if(mainForm){
+	win.setOwner(winform.hwnd,mainForm.hwnd);
+}
+
+winform.btnOk.oncommand = function(id,event){
+	//让custom控件悬浮到其他控件前面
+	winform.customLoading.orphanWindow();
+    winform.customLoading.show(true);
+	//创建后台线程
+    thread.invokeAndWait( 
+    	function(winform){
+    		//在后台线程做一些可能耗时的操作
+    		import crypt.bin;
+    		import crypt.aes;
+    		var aes = crypt.aes();
+    		aes.setPassword("lanchatserverisgood"); 
+    		var pwd_aes = aes.encrypt(winform.editPassword.text);
+    		var pwd_aes_base64url = crypt.bin.encodeUrlBase64(pwd_aes,16); 
+			
+			import inet.http;
+			var http = inet.http();
+			//var thrdTable = thread.table("loginData");
+			var htmlJson,err,errCode = http.post("http://localhost:8876/register"
+    			,{"username"=winform.editUseName.text;"password"=pwd_aes_base64url;});
+			http.close();
+			import web.json;
+			thread.set("htmltable",web.json.parse(htmlJson))
+			//thread.set("pwd_aes_base64url",pwd_aes_base64url)
+    	},winform
+    )
+    var htmltable = thread.get("htmltable")
+    //var pwd_aes_base64url = thread.get("pwd_aes_base64url");
+    //win.msgbox(pwd_aes_base64url)
+    
+    if(htmltable){
+    	if(htmltable[["status"]] === "succeed"){
+    		winform.endModal(winform.editUseName.text)
+    	}
+    	else {
+        	winform.customLoading.show(false);
+        	winform.show(true);
+			winform.msgbox(htmltable[["info"]])
+    	}
+    }
+    else {
+    	winform.customLoading.show(false);
+        winform.show(true);
+    	winform.msgbox("服务器异常！")
+    }
+    
+}
+
+winform.show();
+win.loopMessage();
+return winform;

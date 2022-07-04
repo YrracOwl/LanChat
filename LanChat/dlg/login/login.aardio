@@ -1,0 +1,88 @@
+import win.ui;
+import config;
+if( !config.loginWinform.editUseName){
+	config.loginWinform.editUseName = "请输入用户名";
+}
+/*DSG{{*/
+var winform = win.form(text="登录";right=463;bottom=239;border="thin";exmode="none";max=false;min=false;mode="popup")
+winform.add(
+btnOk={cls="button";text="登录";left=104;top=176;right=221;bottom=221;db=1;dl=1;dr=1;z=2};
+btnReg={cls="button";text="注册";left=240;top=176;right=357;bottom=221;db=1;dr=1;z=3};
+customLoading={cls="\dlg\login\loading.aardio";text="loading";left=8;top=8;right=456;bottom=232;db=1;dl=1;dr=1;dt=1;hide=1;z=1};
+editPassword={cls="edit";text="123";left=32;top=112;right=432;bottom=144;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-14);password=1;tabstop=1;z=5};
+editUseName={cls="edit";text=config.loginWinform.editUseName;left=32;top=40;right=432;bottom=72;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-14);tabstop=1;z=4}
+)
+/*}}*/
+
+winform.btnOk.oncommand = function(id,event){
+    
+    //让custom控件悬浮到其他控件前面
+    winform.customLoading.orphanWindow();
+    winform.customLoading.show(true);
+    //创建后台线程
+    thread.invokeAndWait( 
+    	function(winform){
+    		//在后台线程做一些可能耗时的操作
+    		import crypt.bin;
+    		import crypt.aes;
+    		var aes = crypt.aes();
+    		aes.setPassword("lanchatserverisgood"); 
+    		var pwd_aes = aes.encrypt(winform.editPassword.text);
+    		var pwd_aes_base64url = crypt.bin.encodeUrlBase64(pwd_aes,16); 
+    		
+			import inet.http;
+			var http = inet.http();
+			//var thrdTable = thread.table("loginData");
+			var htmlJson,err,errCode = http.post("http://localhost:8876/login"
+    			,{"username"=winform.editUseName.text;"password"=pwd_aes_base64url;});
+			http.close();
+			import web.json;
+			thread.set("htmltable",web.json.parse(htmlJson))
+			//thread.set("pwd_aes_base64url",pwd_aes_base64url)
+    	},winform
+    )
+    var htmltable = thread.get("htmltable")
+    //var pwd_aes_base64url = thread.get("pwd_aes_base64url");
+    //win.msgbox(pwd_aes_base64url)
+    
+	if(htmltable){
+		if(htmltable[["status"]] === "succeed"){
+    		..Token = htmltable[["token"]];
+    		..globalUserName = winform.editUseName.text;
+			config.loginWinform.editUseName = ..globalUserName;
+    		winform.endModal("登录成功")
+    	}
+    	else {
+        	winform.customLoading.show(false);
+        	winform.show(true);
+			winform.msgbox("登录失败！请确认用户名和密码正确！")
+    	}
+	}    
+    else {
+        winform.customLoading.show(false);
+        winform.show(true);
+    	winform.msgbox("服务器异常！")
+    }
+    
+}
+
+winform.btnReg.oncommand = function(id,event){
+	
+	//暂时隐藏登录窗口
+	winform.show(false);
+	
+	//利用模态对话框阻塞显示注册窗口
+	var frmReg = win.loadForm("\dlg\login\reg.aardio");
+	var username = frmReg.doModal();
+	
+	if(#username){
+		winform.editUseName.text = username;
+	}
+
+	//恢复显示登录窗口
+	winform.show(true);
+}
+
+winform.show();
+win.loopMessage();
+return winform;

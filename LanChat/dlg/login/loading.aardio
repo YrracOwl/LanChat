@@ -1,0 +1,17 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="加载中";right=503;bottom=87;border="dialog frame";exmode="toolwindow";max=false;min=false;mode="popup")
+winform.add(
+plus={cls="plus";text="正在努力干活......";left=16;top=24;right=480;bottom=64;bgcolor=6447459;dl=1;dr=1;hide=1;notify=1;z=1}
+)
+/*}}*/
+
+winform.plus.foreground = 0xffffffa0;
+winform.plus.setProgressRange(1,100);
+winform.plus.startProgress(20); 
+
+//只有没嵌入父窗口，独立运行此代码才显示窗口
+if( !winform.parent ){
+	winform.show() 
+	win.loopMessage();	
+}
